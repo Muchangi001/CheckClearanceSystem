@@ -1,119 +1,168 @@
-# Deploying CTS
+# Deploying and running CTS
 
-How the app gets from this repo to a running URL, and the traps already hit
-on the way. Secrets are never in this file: their values live in the local,
-gitignored `.env` at the repo root.
+How the app gets from this repo to a running URL, how to run it locally, and
+the traps already hit. No secret values appear here: they live in the local,
+gitignored `.env` at the repo root and in the host's environment settings.
 
-## Shape
+## Where it runs
 
 ```
-GitHub (Muchangi001/CheckClearanceSystem, main)
-   │  SnapDeploy pulls and builds the Dockerfile
+GitHub  Muchangi001/CheckClearanceSystem  (main)
+   │  push → Render builds the Dockerfile
    ▼
-SnapDeploy container (CPU, Small: 512 MB / 0.25 vCPU, free tier)
-   │  JDBC over TLS, Supabase session pooler
+Render web service  https://checkclearancesystem.onrender.com   (Docker, free instance)
+   │  JDBC over TLS through the Supabase session pooler
    ▼
-Supabase Postgres 17 (CTS project, eu-west-1; ref in .env)
+Supabase Postgres 17   separate CTS project, eu-west-1, schema `cts`
 ```
 
-SnapDeploy builds only the `Dockerfile`. It never runs `compose.yaml`, which
-is for local development.
+This is a demo stack. Production belongs in an **Indian region** (for example
+AWS Mumbai, `ap-south-1`): RBI requires payment system data to be stored only
+in India. The app is portable: the same image, the same three database
+variables, and Flyway builds the schema on first boot.
 
-## Running locally
+## Render
 
-Docker is required. On this machine that means Docker installed **from apt
-inside the Ubuntu WSL distro**, not snap: snap's Docker can only read files
-under `/home`, and the repo lives on `/mnt/n/...`.
-
-From a WSL terminal in the repo:
-
-```bash
-./mvnw spring-boot:run                  # starts Postgres from compose.yaml automatically
-./mvnw test                             # Testcontainers, needs Docker
-docker compose --profile app up --build # whole stack in containers, as deployed
-```
-
-Run these from WSL, not Windows. Windows-side Maven can't see the WSL
-Docker daemon without extra configuration.
-
-## SnapDeploy settings
-
-| Field | Value |
+| Setting | Value |
 |---|---|
-| Repository | `CheckClearanceSystem` |
-| Root directory / Dockerfile / build context | defaults (`/`, `Dockerfile`, `.`) |
-| Start command | **empty**: anything here overrides the Dockerfile `ENTRYPOINT` |
-| Port | `8080`, or empty. The app reads `PORT` if the platform sets it. |
-| Compute | CPU, Small |
-| PostgreSQL dialog | **"I'm using an external / hosted PostgreSQL"**. Never "Create PostgreSQL": that makes a second database the app never uses. |
+| Service type | **Web Service** (not Private Service, not Postgres) |
+| Repository / branch | `CheckClearanceSystem` / `main` |
+| Runtime | **Docker** (detected from the `Dockerfile`) |
+| Instance | Free |
+| Health check path | `/actuator/health` |
+| Auto-deploy | on: every push to `main` redeploys |
+
+Don't create a Render Postgres. The database is Supabase.
 
 ### Environment variables
 
-| Key | Where the value is | Secret |
+| Key | Value | Notes |
 |---|---|---|
-| `SPRING_DATASOURCE_URL` | `.env` | no |
-| `SPRING_DATASOURCE_USERNAME` | `.env` | yes |
-| `SPRING_DATASOURCE_PASSWORD` | `.env` | yes |
-| `CTS_CLEARING_PHASE` | optional: `1` (default) or `2` | no |
-| `PORT` | managed by SnapDeploy | no |
+| `SPRING_DATASOURCE_URL` | in `.env` | `jdbc:postgresql://aws-0-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require` |
+| `SPRING_DATASOURCE_USERNAME` | in `.env` | `postgres.<project-ref>`: the pooler needs the ref suffix |
+| `SPRING_DATASOURCE_PASSWORD` | in `.env` | |
+| `CTS_CLEARING_PHASE` | optional, `1` or `2` | item expiry rule; default `1` |
+| `PORT` | set by Render | the app reads it (`server.port: ${PORT:8080}`) |
 
-The URL uses Supabase's **session pooler** (`aws-0-eu-west-1.pooler.supabase.com:5432`),
-not the direct `db.<ref>.supabase.co` host. The direct host is IPv6-only, and
-container platforms usually connect over IPv4. The pooler username is
-`postgres.<project-ref>`, not plain `postgres`.
+Render's "Add from .env" accepts the three `SPRING_DATASOURCE_*` lines pasted
+as `KEY=value`. Paste only those: the Supabase API keys in `.env` aren't used
+by the app.
+
+The URL uses Supabase's **session pooler**, not the direct `db.<ref>.supabase.co`
+host. The direct host is IPv6-only, and hosted containers connect over IPv4.
+
+### Behaviour to expect
+
+- **Cold starts.** The free instance sleeps after about 15 minutes idle; the
+  next request waits roughly a minute while it boots. Open the URL a minute
+  before anyone reviews it.
+- **Redeploys.** A push rebuilds the image (about 5 minutes) and swaps the
+  container. Don't push while the client is looking at it.
+- **Sessions** are in memory, so a restart signs everyone out.
 
 ## What happens on boot
 
-1. Hikari opens a connection to Supabase. With no `SPRING_DATASOURCE_URL` the
-   app exits immediately ("Failed to configure a DataSource"). This is
-   intended: a payment system should not run without its database.
-2. Flyway applies `src/main/resources/db/migration`.
-3. Hibernate validates the schema against the entities (`ddl-auto: validate`).
-   It never creates or alters tables. Only Flyway changes the schema.
+1. Hikari connects to Supabase. Without `SPRING_DATASOURCE_URL` the app exits
+   at once ("Failed to configure a DataSource"). That's intended: a payment
+   system must not run without its database.
+2. Flyway creates the `cts` schema if needed and applies
+   `src/main/resources/db/migration` (`V1__schema.sql`, `V2__seed.sql`).
+3. Hibernate validates the entities against the tables (`ddl-auto: validate`).
+   It never changes the schema; only Flyway does.
+4. `SigningService` generates this boot's RSA key pair and stores the public
+   half in `signing_key`, so items signed by earlier boots still verify.
 
-Expect about a minute to boot on 0.25 vCPU. The free tier **auto-sleeps**
-when idle, and a cold request takes the same minute. Wake it a few minutes
-before anyone reviews it.
+## Running locally
 
-Demo users (`maker`, `checker`, `ops`, `drawee`, `admin`) are seeded by
-`V2__seed.sql`; see the README.
+### Without Docker (how the MVP was built and tested)
 
-**Resetting the demo database:** drop the `cts` schema. Flyway recreates it, with
-the seed data, on the next boot. Nothing else lives in that schema.
+Run the packaged jar against the same Supabase database, using `.env`:
+
+```bash
+./mvnw -DskipTests package
+set -a; . ./.env; set +a
+java -jar target/cts-0.0.1-SNAPSHOT.jar      # http://localhost:8080
+```
+
+This shares the demo database with the deployed app: anything captured
+locally shows up on Render.
+
+### With Docker
+
+Docker isn't installed on this machine. If you add it, install from apt
+inside the Ubuntu WSL distro, not snap: snap's Docker can only read files
+under `/home`, and the repo is on `/mnt/n/...`. Then, from WSL:
+
+```bash
+./mvnw spring-boot:run                    # starts Postgres from compose.yaml automatically
+docker compose --profile app up --build   # the whole stack in containers, as deployed
+./mvnw test                               # Testcontainers context test
+```
+
+## Testing status
+
+The MVP was verified end to end against the real database: every role signed
+in, every page rendered for the roles allowed to see it, and 403 for the rest.
+A full clearing cycle was run: duplicate and stale rejection, maker-checker,
+presentment, drawee returns 01/20/88/12, confirmation, settlement twice (the
+second posted nothing), ledger balanced, and net positions summing to zero.
+That run was done with `curl` scripts, not committed tests. The repo's only
+automated test is the Spring context test, which needs Docker. Unit tests for
+`MicrLine`, amount parsing, `ExpiryPolicy` and the drawee rules are the next
+thing to add.
+
+## Resetting the demo database
+
+Drop the `cts` schema. On the next boot Flyway recreates it with the seed
+data: demo users, banks, drawer accounts, the stop payment and the Positive Pay
+registration. Nothing else lives in that schema. Reset after any rehearsal of
+the README walkthrough, because the walkthrough uses up cheque `000310`.
+
+Note that the Positive Pay seed is dated **the day the schema was created**,
+and that date must match on capture.
 
 ## JVM sizing
 
 The `ENTRYPOINT` is tuned for 512 MB:
 `-XX:MaxRAMPercentage=60 -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xss512k`.
-The heap is capped at about 300 MB, leaving room for metaspace and threads.
+The heap is capped near 300 MB to leave room for metaspace and threads.
 SerialGC and C1-only compilation favour startup time over peak throughput. On
-a larger container, drop the last three flags and raise the percentage.
+a larger instance, drop the last three flags and raise the percentage.
 
 ## Storage
 
 Cheque images are stored in Postgres (`cheque_image.data`), so they survive
-redeploys on any host. Before real volumes, move them to object storage and keep
-only the reference and SHA-256 hash in the database.
-
-## Redeploying
-
-Push to `main`. SnapDeploy rebuilds if auto-deploy is on; otherwise redeploy
-from its dashboard. The image build skips tests (Testcontainers needs Docker),
-so run `./mvnw test` locally before pushing.
+redeploys on any host. Before real volumes, move them to object storage and
+keep only the reference and SHA-256 hash in the database.
 
 ## Traps already hit
 
+- **SnapDeploy was abandoned.** Its free tier allows 5 deploys per 12 hours,
+  which ran out mid-build. Its build sandbox also couldn't untar the Maven
+  wrapper (below). Render has neither limit.
+- **The devforge VPS is not an option.** It has 1 vCPU and 934 MB of RAM,
+  runs the devforge bot engine with live Deriv sockets, and accepts no
+  inbound traffic by design. This app needs about 400 MB.
 - **start.spring.io wrote `4.1.1.RELEASE`** as the Boot version. Maven Central
-  publishes it as `4.1.1`, and the `.RELEASE` form fails to resolve the parent POM.
+  publishes it as `4.1.1`; the `.RELEASE` form fails to resolve the parent POM.
 - **Own schema, not `public`.** Supabase's `public` is non-empty, so Flyway
-  refuses it ("Found non-empty schema(s) \"public\" but no schema history table").
-  It is also exposed through Supabase's REST API. Everything lives in `cts`
-  (Flyway `schemas`, Hikari `schema`, Hibernate `default_schema`). Don't "fix" it
-  with `baselineOnMigrate`.
+  refuses it ("Found non-empty schema(s) \"public\" but no schema history
+  table"). It is also exposed through Supabase's REST API. Everything lives in
+  `cts` (Flyway `schemas`, Hikari `schema`, Hibernate `default_schema`). Don't
+  "fix" it with `baselineOnMigrate`.
 - **No Maven wrapper in the image build.** `mvnw` downloads and untars Maven,
-  and SnapDeploy's build sandbox fails that with `tar: ... Cannot open: Function
-  not implemented`. The build stage uses `maven:3.9-eclipse-temurin-21` instead.
+  and SnapDeploy's sandbox failed that with `tar: ... Cannot open: Function not
+  implemented`. The build stage uses `maven:3.9-eclipse-temurin-21` instead.
 - **No BuildKit features in the Dockerfile.** `# syntax=` and
-  `RUN --mount=type=cache` were removed because a hosted builder may not support them.
-- **Secrets:** tick "Secret" on the username and password in SnapDeploy.
-  `.env` is gitignored. Never paste the values into commits, docs or issues.
+  `RUN --mount=type=cache` were removed so any hosted builder can build it.
+- **Redirects must be relative.** The platform proxy terminates TLS and didn't
+  reliably forward the scheme, so Spring redirected to `http://`.
+  `server.tomcat.use-relative-redirects: true` sends `Location: /login`, and
+  the browser keeps `https`.
+- **Postgres aborts the transaction on any failed statement.** Catching a
+  duplicate-key error and carrying on doesn't work. Ledger idempotency uses
+  `INSERT ... ON CONFLICT DO NOTHING` instead.
+- **SpEL can't index a map by an enum value.** The dashboard keys its counts
+  by status name.
+- **Secrets:** never paste the values into commits, docs or issues. `.env` is
+  gitignored; `docs/DOMAIN.md` is excluded locally and never pushed.

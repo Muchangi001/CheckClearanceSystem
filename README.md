@@ -7,6 +7,9 @@ double-entry ledger and an append-only audit trail.
 
 Java 21 · Spring Boot 4.1 · Spring MVC + Thymeleaf · Spring Data JPA · Flyway · PostgreSQL 17 · Docker
 
+**Live demo:** https://checkclearancesystem.onrender.com. It sleeps when idle,
+so the first request can take about a minute.
+
 ## Try it
 
 Sign in with any demo user. The password for all of them is `Cts@2026`.
@@ -96,12 +99,30 @@ services as the pages, ready for a mobile capture client.
 ## Run it
 
 ```bash
-./mvnw spring-boot:run       # starts Postgres from compose.yaml (needs Docker)
+./mvnw spring-boot:run                    # starts Postgres from compose.yaml (needs Docker)
 docker compose --profile app up --build   # the whole stack in containers
 ```
 
 Against an existing database, set `SPRING_DATASOURCE_URL`, `_USERNAME` and
 `_PASSWORD`. Flyway creates everything in its own `cts` schema.
+
+Hosting, environment variables, resetting the demo data and the testing
+status are in [docs/DEPLOY.md](docs/DEPLOY.md).
+
+## Project layout
+
+```
+src/main/java/com/cts/
+  cheque/     capture, MICR line, maker-checker, the Cheque entity and its states
+  clearing/   presentment, the drawee simulator, item expiry, settlement, scheduler
+  ledger/     double-entry postings
+  audit/      append-only audit trail
+  security/   users and roles, item signing
+  web/        page controllers, the JSON API, formatting
+src/main/resources/
+  db/migration/   V1 schema, V2 demo data
+  templates/      Thymeleaf pages
+```
 
 ## Roadmap
 
