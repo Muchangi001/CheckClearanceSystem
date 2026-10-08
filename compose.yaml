@@ -32,9 +32,6 @@ services:
       SPRING_DOCKER_COMPOSE_ENABLED: "false"
     ports:
       - "8080:8080"
-    volumes:
-      - images:/data/images
 
 volumes:
   pgdata:
-  images:

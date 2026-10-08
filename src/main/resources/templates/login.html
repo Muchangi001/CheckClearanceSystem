@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Sign in')}"></head>
+<body class="center">
+<main class="login">
+	<h1>Cheque Truncation System</h1>
+	<p class="muted">CTS Demo Bank · outward and inward clearing</p>
+	<p class="error" th:if="${param.error}">Wrong username or password.</p>
+	<p class="notice" th:if="${param.logout}">Signed out.</p>
+	<form th:action="@{/login}" method="post" class="stack">
+		<label>Username <input name="username" autocomplete="username" required autofocus></label>
+		<label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+		<button class="primary">Sign in</button>
+	</form>
+	<details class="demo">
+		<summary>Demo users</summary>
+		<p>Password for all: <code>Cts@2026</code></p>
+		<table>
+			<tr><td><code>maker</code></td><td>Captures cheques</td></tr>
+			<tr><td><code>checker</code></td><td>Approves high-value items</td></tr>
+			<tr><td><code>ops</code></td><td>Presents and settles</td></tr>
+			<tr><td><code>drawee</code></td><td>Acts for the paying bank</td></tr>
+			<tr><td><code>admin</code></td><td>All roles (still bound by maker-checker)</td></tr>
+		</table>
+	</details>
+</main>
+</body>
+</html>

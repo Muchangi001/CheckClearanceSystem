@@ -29,11 +29,16 @@ spring:
     default-schema: cts
   servlet:
     multipart:
-      max-file-size: 5MB
-      max-request-size: 20MB
+      max-file-size: 3MB
+      max-request-size: 8MB
 
 cts:
-  image-dir: ${CTS_IMAGE_DIR:./data/images}
+  approval-threshold-paise: 10000000     # Rs 1,00,000
+  pps-threshold-paise: 5000000           # Rs 50,000
+  pps-mandatory-paise: 50000000          # Rs 5,00,000
+  clearing-phase: ${CTS_CLEARING_PHASE:1}
+  confirmation-cutoff: "19:00"
+  zone: Asia/Kolkata
 
 management:
   endpoints:

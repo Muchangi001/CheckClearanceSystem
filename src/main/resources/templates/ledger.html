@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Ledger')}"></head>
+<body>
+<header th:replace="~{layout :: nav}"></header>
+<main>
+	<h1>Ledger</h1>
+	<p th:class="${totals.balanced()} ? 'notice' : 'error'"
+	   th:text="${totals.balanced()} ? 'Balanced: debits ' + ${@fmt.inr(totals.debits)} + ' = credits ' + ${@fmt.inr(totals.credits)}
+	                                 : 'OUT OF BALANCE: debits ' + ${@fmt.inr(totals.debits)} + ', credits ' + ${@fmt.inr(totals.credits)}"></p>
+
+	<div class="cols">
+		<section class="card">
+			<h2>Account balances</h2>
+			<table class="grid compact">
+				<thead><tr><th>Account</th><th class="num">Debits</th><th class="num">Credits</th><th class="num">Net (Dr − Cr)</th></tr></thead>
+				<tr th:each="b : ${balances}">
+					<td><code th:text="${b.account}"></code></td>
+					<td class="num" th:text="${@fmt.inr(b.debits)}"></td>
+					<td class="num" th:text="${@fmt.inr(b.credits)}"></td>
+					<td class="num" th:text="${@fmt.inr(b.net())}"></td>
+				</tr>
+			</table>
+		</section>
+		<section class="card">
+			<h2>Postings</h2>
+			<table class="grid compact">
+				<thead><tr><th>Cheque</th><th>Type</th><th>Account</th><th class="num">Dr</th><th class="num">Cr</th></tr></thead>
+				<tr th:each="e : ${entries}">
+					<td><a th:href="@{/cheques/{id}(id=${e.chequeId})}" th:text="'#' + ${e.chequeId}"></a></td>
+					<td><code th:text="${e.entryType}"></code></td>
+					<td><code th:text="${e.account}"></code></td>
+					<td class="num" th:text="${e.debitPaise > 0 ? @fmt.inr(e.debitPaise) : ''}"></td>
+					<td class="num" th:text="${e.creditPaise > 0 ? @fmt.inr(e.creditPaise) : ''}"></td>
+				</tr>
+			</table>
+		</section>
+	</div>
+</main>
+</body>
+</html>

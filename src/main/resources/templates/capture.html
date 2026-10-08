@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Capture')}"></head>
+<body>
+<header th:replace="~{layout :: nav}"></header>
+<main>
+	<h1>Capture a cheque</h1>
+	<p class="muted">Outward clearing. Scan both sides, key the MICR line as printed, and key the amount: CTS cheques carry no pre-printed amount.</p>
+	<div th:replace="~{layout :: flash}"></div>
+
+	<form th:action="@{/cheques(_csrf=${_csrf.token})}" method="post" enctype="multipart/form-data" class="card">
+		<fieldset>
+			<legend>MICR line</legend>
+			<div class="micr">
+				<label>Cheque no. <input name="serial" maxlength="6" inputmode="numeric" placeholder="000123" required th:value="${form?.serial}"></label>
+				<label>MICR code <input name="micrCode" maxlength="9" inputmode="numeric" placeholder="400002101" required th:value="${form?.micrCode}"></label>
+				<label>Account <input name="accountNo" maxlength="6" inputmode="numeric" placeholder="100201" required th:value="${form?.accountNo}"></label>
+				<label>Txn code <input name="txCode" maxlength="2" inputmode="numeric" placeholder="10" required th:value="${form?.txCode ?: '10'}"></label>
+			</div>
+			<p class="muted small">MICR code = city (3) · bank (3) · branch (3). Demo drawee banks: 002 SBI, 240 HDFC, 229 ICICI, 211 Axis.</p>
+		</fieldset>
+
+		<fieldset>
+			<legend>Instrument</legend>
+			<div class="row">
+				<label>Amount (₹) <input name="amount" inputmode="decimal" placeholder="25,000.00" required th:value="${form?.amount}"></label>
+				<label>Cheque date <input name="chequeDate" type="date" required th:value="${form?.chequeDate ?: today}"></label>
+				<label class="grow">Payee <input name="payeeName" required th:value="${form?.payeeName}"></label>
+			</div>
+			<label>Deposited to
+				<select name="depositorAccount" required>
+					<option th:each="a : ${accounts}" th:value="${a.accountNo}" th:text="${a.accountNo + ' · ' + a.holderName}"
+							th:selected="${form != null and form.depositorAccount == a.accountNo}"></option>
+				</select>
+			</label>
+		</fieldset>
+
+		<fieldset>
+			<legend>Images</legend>
+			<div class="row">
+				<label>Front <input name="front" type="file" accept="image/*" required></label>
+				<label>Back <input name="back" type="file" accept="image/*" required></label>
+			</div>
+			<p class="muted small">Production CTS sends front grey-scale (100 DPI JPEG) plus front and back black &amp; white (200 DPI TIFF G4). Each image is hashed with SHA-256 here and the hashes are signed at presentment.</p>
+		</fieldset>
+
+		<button class="primary">Capture</button>
+	</form>
+</main>
+</body>
+</html>

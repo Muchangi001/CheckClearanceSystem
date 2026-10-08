@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{layout :: head('Settlement')}"></head>
+<body>
+<header th:replace="~{layout :: nav}"></header>
+<main>
+	<div th:replace="~{layout :: flash}"></div>
+	<div class="titlebar">
+		<h1>Settlement</h1>
+		<form sec:authorize="hasRole('OPS')" th:action="@{/settlement/run}" method="post">
+			<button class="primary" th:text="'Settle ' + ${confirmed} + ' confirmed item(s) now'">Settle now</button>
+		</form>
+	</div>
+	<p class="muted">Settlement on realisation: confirmed items settle hourly from 11:00 IST, and the presenting bank credits its customer.
+		The net position per bank is what moves between their accounts at RBI. Positions across all banks sum to zero.</p>
+
+	<div class="cols">
+		<section class="card">
+			<h2>Batches</h2>
+			<table class="grid compact">
+				<thead><tr><th>Batch</th><th>Settled</th><th class="num">Items</th><th class="num">Total</th><th>By</th></tr></thead>
+				<tr th:each="b : ${batches}" th:classappend="${b.id == selected} ? 'selected'">
+					<td><a th:href="@{/settlement(batch=${b.id})}" th:text="${b.id}"></a></td>
+					<td th:text="${@fmt.time(b.settledAt)}"></td>
+					<td class="num" th:text="${b.itemCount}"></td>
+					<td class="num" th:text="${@fmt.inr(b.totalPaise)}"></td>
+					<td th:text="${b.triggeredBy}"></td>
+				</tr>
+				<tr th:if="${#lists.isEmpty(batches)}"><td colspan="5" class="muted">No settlements yet.</td></tr>
+			</table>
+		</section>
+
+		<section class="card" th:if="${selected != null}">
+			<h2 th:text="'Net positions, batch ' + ${selected}"></h2>
+			<table class="grid compact">
+				<thead><tr><th>Bank</th><th class="num">Pays (+) / receives (−)</th></tr></thead>
+				<tr th:each="p : ${positions}">
+					<td th:text="${p.bankName} + ' (' + ${p.bankCode} + ')'"></td>
+					<td class="num" th:text="${@fmt.inr(p.netPaise)}"></td>
+				</tr>
+			</table>
+			<h2>Items</h2>
+			<table class="grid compact">
+				<tr th:each="c : ${items}">
+					<td><a th:href="@{/cheques/{id}(id=${c.id})}" th:text="'#' + ${c.id}"></a></td>
+					<td th:text="${c.serial}"></td>
+					<td th:text="${c.payeeName}"></td>
+					<td class="num" th:text="${@fmt.inr(c.amountPaise)}"></td>
+					<td th:text="${c.deemed ? 'deemed' : ''}"></td>
+				</tr>
+			</table>
+		</section>
+	</div>
+</main>
+</body>
+</html>

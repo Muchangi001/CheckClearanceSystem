@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(title)">
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title th:text="${title} + ' · CTS'">CTS</title>
+	<link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header th:fragment="nav">
+	<a class="brand" th:href="@{/}">CTS <small>CTS Demo Bank</small></a>
+	<nav>
+		<a th:href="@{/}">Dashboard</a>
+		<a sec:authorize="hasRole('MAKER')" th:href="@{/cheques/new}">Capture</a>
+		<a sec:authorize="hasRole('CHECKER')" th:href="@{/approvals}">Approvals</a>
+		<a sec:authorize="hasRole('DRAWEE')" th:href="@{/inward}">Inward</a>
+		<a sec:authorize="hasRole('DRAWEE')" th:href="@{/positive-pay}">Positive Pay</a>
+		<a th:href="@{/settlement}">Settlement</a>
+		<a th:href="@{/ledger}">Ledger</a>
+	</nav>
+	<span class="who">
+		<span sec:authentication="name"></span>
+		<small sec:authentication="principal.authorities"></small>
+	</span>
+	<form th:action="@{/logout}" method="post"><button class="link">Sign out</button></form>
+</header>
+<div th:fragment="flash">
+	<p class="notice" th:if="${notice}" th:text="${notice}"></p>
+	<p class="error" th:if="${error}" th:text="${error}"></p>
+</div>
+<span th:fragment="status(s)" th:class="'badge ' + ${#strings.toLowerCase(s)}" th:text="${#strings.replace(s, '_', ' ')}"></span>
+</body>
+</html>

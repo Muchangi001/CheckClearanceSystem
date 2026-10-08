@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Error')}"></head>
+<body>
+<header th:replace="~{layout :: nav}"></header>
+<main>
+	<h1>Something went wrong</h1>
+	<p class="error" th:text="${message != null and message != '' ? message : (error ?: 'Unexpected error')}"></p>
+	<p><a th:href="@{/}">Back to the dashboard</a></p>
+</main>
+</body>
+</html>

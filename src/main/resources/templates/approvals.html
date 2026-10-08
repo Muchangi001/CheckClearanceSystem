@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Approvals')}"></head>
+<body>
+<header th:replace="~{layout :: nav}"></header>
+<main>
+	<h1>Awaiting approval</h1>
+	<p class="muted">High-value items held at capture. Whoever captured an item cannot approve it.</p>
+	<table class="grid">
+		<thead><tr><th>#</th><th>Serial</th><th>MICR</th><th>Payee</th><th class="num">Amount</th><th>Captured by</th><th>Captured</th></tr></thead>
+		<tbody>
+		<tr th:each="c : ${cheques}">
+			<td><a th:href="@{/cheques/{id}(id=${c.id})}" th:text="${c.id}"></a></td>
+			<td th:text="${c.serial}"></td>
+			<td><code th:text="${c.micrCode}"></code></td>
+			<td th:text="${c.payeeName}"></td>
+			<td class="num" th:text="${@fmt.inr(c.amountPaise)}"></td>
+			<td th:text="${c.capturedBy}"></td>
+			<td th:text="${@fmt.time(c.capturedAt)}"></td>
+		</tr>
+		<tr th:if="${#lists.isEmpty(cheques)}"><td colspan="7" class="muted">Nothing waiting.</td></tr>
+		</tbody>
+	</table>
+</main>
+</body>
+</html>

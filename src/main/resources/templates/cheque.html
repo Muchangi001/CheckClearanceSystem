@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{layout :: head('Cheque ' + ${c.id})}"></head>
+<body>
+<header th:replace="~{layout :: nav}"></header>
+<main>
+	<div th:replace="~{layout :: flash}"></div>
+	<div class="titlebar">
+		<h1>Cheque <span th:text="${c.serial}"></span> <small class="muted" th:text="'#' + ${c.id}"></small></h1>
+		<span th:replace="~{layout :: status(${c.status.name()})}"></span>
+	</div>
+	<p class="reason" th:if="${c.statusReason != null or c.returnCode != null}">
+		<strong th:if="${c.returnCode}" th:text="'Return ' + ${c.returnCode} + ': ' + ${returnReason}"></strong>
+		<span th:text="${c.statusReason}"></span>
+		<span th:if="${c.deemed}">Deemed approved: the drawee did not respond by the item's expiry.</span>
+	</p>
+
+	<div class="cols">
+		<section class="card">
+			<h2>Instrument</h2>
+			<p class="micrline" th:text="${c.micr()}"></p>
+			<dl>
+				<dt>Amount</dt><dd class="amount" th:text="${@fmt.inr(c.amountPaise)}"></dd>
+				<dt>Cheque date</dt><dd th:text="${c.chequeDate}"></dd>
+				<dt>Payee</dt><dd th:text="${c.payeeName}"></dd>
+				<dt>Drawee bank</dt><dd th:text="${bank} + ' (' + ${c.draweeBankCode()} + '), city ' + ${c.micr().cityCode()} + ', branch ' + ${c.micr().branchCode()}"></dd>
+				<dt>Drawer account</dt><dd th:text="${c.accountNo}"></dd>
+				<dt>Deposited to</dt><dd th:text="${c.depositorAccount}"></dd>
+				<dt>Captured by</dt><dd th:text="${c.capturedBy} + ', ' + ${@fmt.time(c.capturedAt)}"></dd>
+				<dt th:if="${c.approvedBy}">Approved by</dt><dd th:if="${c.approvedBy}" th:text="${c.approvedBy}"></dd>
+				<dt th:if="${c.presentedAt}">Presented</dt><dd th:if="${c.presentedAt}" th:text="${@fmt.time(c.presentedAt)}"></dd>
+				<dt th:if="${c.expiresAt}">Item expiry</dt><dd th:if="${c.expiresAt}" th:text="${@fmt.time(c.expiresAt)}"></dd>
+				<dt th:if="${c.decidedBy}">Decided by</dt><dd th:if="${c.decidedBy}" th:text="${c.decidedBy} + ', ' + ${@fmt.time(c.decidedAt)}"></dd>
+				<dt th:if="${c.settlementBatchId}">Settlement</dt><dd th:if="${c.settlementBatchId}"><a th:href="@{/settlement(batch=${c.settlementBatchId})}" th:text="'Batch ' + ${c.settlementBatchId}"></a></dd>
+				<dt th:if="${c.dataHash}">Item hash</dt><dd th:if="${c.dataHash}"><code class="hash" th:text="${c.dataHash}"></code></dd>
+				<dt th:if="${c.signingKeyId}">Signed with</dt><dd th:if="${c.signingKeyId}"><code th:text="'RSA-2048 key ' + ${c.signingKeyId}"></code></dd>
+			</dl>
+		</section>
+
+		<section class="card">
+			<h2>Images</h2>
+			<figure th:each="img : ${images}">
+				<img th:src="@{/cheques/{id}/image/{side}(id=${c.id}, side=${img.side})}" th:alt="${img.side}">
+				<figcaption><span th:text="${img.side}"></span> · SHA-256 <code class="hash" th:text="${img.sha256}"></code></figcaption>
+			</figure>
+		</section>
+	</div>
+
+	<section class="card actions" th:if="${c.status.name() == 'PENDING_APPROVAL'}" sec:authorize="hasRole('CHECKER')">
+		<h2>Checker decision</h2>
+		<form th:action="@{/cheques/{id}/approve(id=${c.id})}" method="post"><button class="primary">Approve</button></form>
+		<form th:action="@{/cheques/{id}/reject(id=${c.id})}" method="post" class="inline">
+			<input name="reason" placeholder="Reason for rejection">
+			<button class="danger">Reject</button>
+		</form>
+	</section>
+
+	<section class="card actions" th:if="${c.status.name() == 'PRESENTED'}" sec:authorize="hasRole('DRAWEE')">
+		<h2>Drawee decision</h2>
+		<p class="muted">Automatic checks passed. Compare the signature with the specimen, then confirm or return before the item expires.</p>
+		<form th:action="@{/cheques/{id}/confirm(id=${c.id})}" method="post"><button class="primary">Confirm (pay)</button></form>
+		<form th:action="@{/cheques/{id}/return(id=${c.id})}" method="post" class="inline">
+			<select name="code">
+				<option th:each="r : ${reasons}" th:value="${r.code}" th:text="${r.code + ' · ' + r.description}" th:selected="${r.code == '12'}"></option>
+			</select>
+			<input name="reason" placeholder="Note (optional)">
+			<button class="danger">Return</button>
+		</form>
+	</section>
+
+	<section class="card">
+		<h2>History</h2>
+		<ol class="timeline">
+			<li th:each="e : ${events}">
+				<time th:text="${@fmt.time(e.at)}"></time>
+				<code th:text="${e.action}"></code>
+				<span th:text="${e.actor}"></span>
+				<span class="muted" th:text="${e.detail}"></span>
+			</li>
+		</ol>
+	</section>
+</main>
+</body>
+</html>

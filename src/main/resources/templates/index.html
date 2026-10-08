@@ -1,20 +1,52 @@
 <!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>CTS</title>
-	<link rel="stylesheet" th:href="@{/css/app.css}">
-	<script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
-</head>
+<head th:replace="~{layout :: head('Dashboard')}"></head>
 <body>
-	<header>
-		<strong>CTS</strong>
-		<span sec:authentication="name"></span>
-		<form th:action="@{/logout}" method="post"><button>Sign out</button></form>
-	</header>
-	<main>
-		<h1>Cheque Truncation System</h1>
-	</main>
+<header th:replace="~{layout :: nav}"></header>
+<main>
+	<div th:replace="~{layout :: flash}"></div>
+	<div class="titlebar">
+		<h1>Clearing dashboard</h1>
+		<form sec:authorize="hasRole('OPS')" th:action="@{/clearing/present}" method="post">
+			<button class="primary">Present ready items</button>
+		</form>
+	</div>
+
+	<section class="tiles">
+		<a th:each="s : ${statuses}" th:href="@{/(status=${s})}" class="tile" th:classappend="${filter == s} ? 'active'">
+			<span th:replace="~{layout :: status(${s.name()})}"></span>
+			<strong th:text="${counts[s.name()] != null ? counts[s.name()].count : 0}">0</strong>
+			<small th:text="${@fmt.inr(counts[s.name()] != null ? counts[s.name()].total : 0)}"></small>
+		</a>
+	</section>
+
+	<div class="titlebar">
+		<h2 th:text="${filter == null ? 'Latest items' : #strings.replace(filter.name(), '_', ' ')}">Latest items</h2>
+		<a th:if="${filter != null}" th:href="@{/}">Show all</a>
+	</div>
+	<table class="grid">
+		<thead><tr><th>#</th><th>Serial</th><th>MICR</th><th>Drawer a/c</th><th>Payee</th><th class="num">Amount</th><th>Status</th><th>Captured</th></tr></thead>
+		<tbody>
+		<tr th:each="c : ${cheques}">
+			<td><a th:href="@{/cheques/{id}(id=${c.id})}" th:text="${c.id}"></a></td>
+			<td th:text="${c.serial}"></td>
+			<td><code th:text="${c.micrCode}"></code></td>
+			<td th:text="${c.accountNo}"></td>
+			<td th:text="${c.payeeName}"></td>
+			<td class="num" th:text="${@fmt.inr(c.amountPaise)}"></td>
+			<td><span th:replace="~{layout :: status(${c.status.name()})}"></span></td>
+			<td th:text="${@fmt.time(c.capturedAt)}"></td>
+		</tr>
+		<tr th:if="${#lists.isEmpty(cheques)}"><td colspan="8" class="muted">No items yet.</td></tr>
+		</tbody>
+	</table>
+
+	<h2>Audit trail</h2>
+	<table class="grid compact">
+		<tr th:each="e : ${events}">
+			<td th:text="${@fmt.time(e.at)}"></td><td th:text="${e.actor}"></td><td><code th:text="${e.action}"></code></td><td th:text="${e.detail}"></td>
+		</tr>
+	</table>
+</main>
 </body>
 </html>

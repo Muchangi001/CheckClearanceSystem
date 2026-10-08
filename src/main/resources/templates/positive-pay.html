@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Positive Pay')}"></head>
+<body>
+<header th:replace="~{layout :: nav}"></header>
+<main>
+	<div th:replace="~{layout :: flash}"></div>
+	<h1>Positive Pay</h1>
+	<p class="muted">Drawers register a cheque's details before issuing it. At ₹50,000 and above the presented cheque must match exactly;
+		at ₹5,00,000 and above this bank returns any cheque that was never registered.</p>
+
+	<form th:action="@{/positive-pay}" method="post" class="card">
+		<div class="row">
+			<label class="grow">Drawer account
+				<select name="accountId">
+					<option th:each="a : ${accounts}" th:value="${a.id}"
+							th:text="${a.holderName + ' · ' + a.micrCode + ' / ' + a.accountNo + (a.status == 'CLOSED' ? ' (closed)' : '')}"></option>
+				</select>
+			</label>
+			<label>Cheque no. <input name="serial" maxlength="6" required></label>
+			<label>Date <input name="chequeDate" type="date" th:value="${today}" required></label>
+		</div>
+		<div class="row">
+			<label class="grow">Payee <input name="payeeName" required></label>
+			<label>Amount (₹) <input name="amount" inputmode="decimal" required></label>
+			<button class="primary">Register</button>
+		</div>
+	</form>
+
+	<h2>Registered</h2>
+	<table class="grid">
+		<thead><tr><th>Drawer</th><th>Account</th><th>Cheque no.</th><th>Date</th><th>Payee</th><th class="num">Amount</th></tr></thead>
+		<tr th:each="p : ${entries}">
+			<td th:text="${p.holderName}"></td><td th:text="${p.accountNo}"></td><td th:text="${p.serial}"></td>
+			<td th:text="${p.chequeDate}"></td><td th:text="${p.payeeName}"></td><td class="num" th:text="${@fmt.inr(p.amountPaise)}"></td>
+		</tr>
+	</table>
+
+	<h2>Drawer accounts (drawee core banking, simulated)</h2>
+	<table class="grid">
+		<thead><tr><th>Holder</th><th>MICR code</th><th>Account</th><th>Status</th><th class="num">Balance</th></tr></thead>
+		<tr th:each="a : ${accounts}">
+			<td th:text="${a.holderName}"></td><td><code th:text="${a.micrCode}"></code></td><td th:text="${a.accountNo}"></td>
+			<td th:text="${a.status}"></td><td class="num" th:text="${@fmt.inr(a.balancePaise)}"></td>
+		</tr>
+	</table>
+</main>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Inward')}"></head>
+<body>
+<header th:replace="~{layout :: nav}"></header>
+<main>
+	<h1>Inward clearing</h1>
+	<p class="muted">Items presented on the drawee bank that passed the automatic checks (signature, account, stop payment, Positive Pay, funds).
+		Confirm or return each before it expires; anything left unanswered is deemed approved and paid.</p>
+	<table class="grid">
+		<thead><tr><th>#</th><th>Serial</th><th>MICR</th><th>Drawer a/c</th><th>Payee</th><th class="num">Amount</th><th>Presented</th><th>Expires</th></tr></thead>
+		<tbody>
+		<tr th:each="c : ${cheques}">
+			<td><a th:href="@{/cheques/{id}(id=${c.id})}" th:text="${c.id}"></a></td>
+			<td th:text="${c.serial}"></td>
+			<td><code th:text="${c.micrCode}"></code></td>
+			<td th:text="${c.accountNo}"></td>
+			<td th:text="${c.payeeName}"></td>
+			<td class="num" th:text="${@fmt.inr(c.amountPaise)}"></td>
+			<td th:text="${@fmt.time(c.presentedAt)}"></td>
+			<td th:text="${@fmt.time(c.expiresAt)}"></td>
+		</tr>
+		<tr th:if="${#lists.isEmpty(cheques)}"><td colspan="8" class="muted">No inward items awaiting a decision.</td></tr>
+		</tbody>
+	</table>
+</main>
+</body>
+</html>
