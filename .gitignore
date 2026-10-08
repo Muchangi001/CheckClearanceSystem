@@ -35,3 +35,7 @@ build/
 ### CTS ###
 data/
 .env
+
+### e2e ###
+e2e/node_modules/
+recordings/

@@ -106,16 +106,23 @@ in, every page rendered for the roles allowed to see it, and 403 for the rest.
 A full clearing cycle was run: duplicate and stale rejection, maker-checker,
 presentment, drawee returns 01/20/88/12, confirmation, settlement twice (the
 second posted nothing), ledger balanced, and net positions summing to zero.
-That run was done with `curl` scripts, not committed tests. The repo's only
-automated test is the Spring context test, which needs Docker. Unit tests for
-`MicrLine`, amount parsing, `ExpiryPolicy` and the drawee rules are the next
-thing to add.
+The same checks now live in `e2e/scenarios.mjs`: Playwright drives a real
+browser through all four scenarios, asserts 27 outcomes, and records a
+captioned video of each. All 27 passed against the Render deployment on
+2026-10-08. The only JUnit test is the Spring context test, which needs Docker.
+Unit tests for `MicrLine`, amount parsing, `ExpiryPolicy` and the drawee rules
+are still to come.
 
 ## Resetting the demo database
 
-Drop the `cts` schema. On the next boot Flyway recreates it with the seed
-data: demo users, banks, drawer accounts, the stop payment and the Positive Pay
-registration. Nothing else lives in that schema. Reset after any rehearsal of
+Run `scripts/reset-demo.sql` against the database. It empties every table
+except `signing_key` and re-inserts the seed data: demo users, banks, drawer
+accounts, the stop payment and the Positive Pay registration. The running app
+keeps working with no restart; `signing_key` is kept because it holds the live
+app's public key.
+
+The heavier option is to drop the `cts` schema; Flyway recreates it on the
+next boot. That needs a restart, because the running app's key goes with it. Reset after any rehearsal of
 the README walkthrough, because the walkthrough uses up cheque `000310`.
 
 Note that the Positive Pay seed is dated **the day the schema was created**,

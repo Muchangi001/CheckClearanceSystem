@@ -1,0 +1,14 @@
+{
+  "name": "cts-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser end-to-end scenarios for CTS, with video",
+  "scripts": {
+    "setup": "npm install && npx playwright install chromium",
+    "test": "node scenarios.mjs",
+    "test:live": "node scenarios.mjs https://checkclearancesystem.onrender.com"
+  },
+  "devDependencies": {
+    "playwright": "1.64.0"
+  }
+}

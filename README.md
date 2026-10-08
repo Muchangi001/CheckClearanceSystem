@@ -109,6 +109,20 @@ Against an existing database, set `SPRING_DATASOURCE_URL`, `_USERNAME` and
 Hosting, environment variables, resetting the demo data and the testing
 status are in [docs/DEPLOY.md](docs/DEPLOY.md).
 
+### End-to-end scenarios
+
+`e2e/` drives the four test scenarios (happy path, maker-checker with Positive
+Pay, every failure and return code, access control) in a real browser, asserts
+each outcome, and records a captioned video per scenario:
+
+```bash
+cd e2e && npm run setup                 # once: Playwright + Chromium
+node scenarios.mjs http://localhost:8080
+```
+
+The scenarios write to the target's database. Afterwards, restore the demo
+data with `scripts/reset-demo.sql`; it needs no restart.
+
 ## Project layout
 
 ```
@@ -123,6 +137,23 @@ src/main/resources/
   db/migration/   V1 schema, V2 demo data
   templates/      Thymeleaf pages
 ```
+
+## Suggested stack after the MVP
+
+| Layer | Choice |
+|---|---|
+| Services | Java 21 + Spring Boot, split into capture, clearing-house interface, inward, and settlement/ledger |
+| Messaging | Apache Kafka with a transactional outbox |
+| Batch | Spring Batch: clearing files, end-of-day reconciliation |
+| Database | PostgreSQL on AWS RDS in Mumbai (`ap-south-1`), or Oracle where the bank standardises on it |
+| Images | S3 in `ap-south-1` with Object Lock (write-once retention); OpenCV for image quality, Tesseract E-13B for MICR, TwelveMonkeys for TIFF G4 |
+| Keys and identity | HSM through PKCS#11 (AWS CloudHSM or the bank's own), mTLS between services, OIDC staff sign-in (Keycloak or the bank's SSO) |
+| Branch capture | Flutter app on the JSON API |
+| Platform | Docker on Kubernetes (EKS), Terraform |
+| Observability | OpenTelemetry, Prometheus + Grafana, centralised logs |
+| Delivery | GitHub Actions; JUnit 5, Testcontainers, Playwright |
+
+Everything stays in India to meet RBI's payment data localisation rule.
 
 ## Roadmap
 
