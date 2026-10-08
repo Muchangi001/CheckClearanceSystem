@@ -103,6 +103,11 @@ so run `./mvnw test` locally before pushing.
 
 - **start.spring.io wrote `4.1.1.RELEASE`** as the Boot version. Maven Central
   publishes it as `4.1.1`, and the `.RELEASE` form fails to resolve the parent POM.
+- **Own schema, not `public`.** Supabase's `public` is non-empty, so Flyway
+  refuses it ("Found non-empty schema(s) \"public\" but no schema history table").
+  It is also exposed through Supabase's REST API. Everything lives in `cts`
+  (Flyway `schemas`, Hikari `schema`, Hibernate `default_schema`). Don't "fix" it
+  with `baselineOnMigrate`.
 - **No Maven wrapper in the image build.** `mvnw` downloads and untars Maven,
   and SnapDeploy's build sandbox fails that with `tar: ... Cannot open: Function
   not implemented`. The build stage uses `maven:3.9-eclipse-temurin-21` instead.

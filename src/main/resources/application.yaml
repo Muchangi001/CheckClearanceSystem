@@ -7,12 +7,21 @@ spring:
   threads:
     virtual:
       enabled: true
+  # Everything lives in its own `cts` schema. Supabase's `public` is not empty
+  # (Flyway refuses it) and is exposed through Supabase's REST API.
+  datasource:
+    hikari:
+      schema: cts
   jpa:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate.default_schema: cts
   flyway:
     locations: classpath:db/migration
+    schemas: cts
+    default-schema: cts
   servlet:
     multipart:
       max-file-size: 5MB
