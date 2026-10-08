@@ -54,7 +54,7 @@ Docker daemon without extra configuration.
 | `SPRING_DATASOURCE_URL` | `.env` | no |
 | `SPRING_DATASOURCE_USERNAME` | `.env` | yes |
 | `SPRING_DATASOURCE_PASSWORD` | `.env` | yes |
-| `CTS_IMAGE_DIR` | `/data/images` (detected from the repo) | no |
+| `CTS_CLEARING_PHASE` | optional: `1` (default) or `2` | no |
 | `PORT` | managed by SnapDeploy | no |
 
 The URL uses Supabase's **session pooler** (`aws-0-eu-west-1.pooler.supabase.com:5432`),
@@ -75,8 +75,11 @@ Expect about a minute to boot on 0.25 vCPU. The free tier **auto-sleeps**
 when idle, and a cold request takes the same minute. Wake it a few minutes
 before anyone reviews it.
 
-Until real users are seeded, Spring Security prints a generated password for
-the user `user` in the container log on every boot.
+Demo users (`maker`, `checker`, `ops`, `drawee`, `admin`) are seeded by
+`V2__seed.sql`; see the README.
+
+**Resetting the demo database:** drop the `cts` schema. Flyway recreates it, with
+the seed data, on the next boot. Nothing else lives in that schema.
 
 ## JVM sizing
 
@@ -88,10 +91,9 @@ a larger container, drop the last three flags and raise the percentage.
 
 ## Storage
 
-`/data/images` is inside the container. On SnapDeploy it is **lost on every
-redeploy or restart** unless a volume is attached, which is acceptable for
-the MVP. Before real use, move cheque images to object storage (Supabase
-Storage or S3) and keep only the reference and SHA-256 hash in Postgres.
+Cheque images are stored in Postgres (`cheque_image.data`), so they survive
+redeploys on any host. Before real volumes, move them to object storage and keep
+only the reference and SHA-256 hash in the database.
 
 ## Redeploying
 
