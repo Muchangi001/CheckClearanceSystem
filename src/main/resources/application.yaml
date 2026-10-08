@@ -1,5 +1,7 @@
 server:
   port: ${PORT:8080}
+  # TLS ends at the platform proxy; trust its X-Forwarded-* so redirects stay https.
+  forward-headers-strategy: native
 
 spring:
   application:
