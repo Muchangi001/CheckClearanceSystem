@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: cts
+  threads:
+    virtual:
+      enabled: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 20MB
+
+cts:
+  image-dir: ${CTS_IMAGE_DIR:./data/images}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

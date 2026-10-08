@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>CTS</title>
+	<link rel="stylesheet" th:href="@{/css/app.css}">
+	<script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+</head>
+<body>
+	<header>
+		<strong>CTS</strong>
+		<span sec:authentication="name"></span>
+		<form th:action="@{/logout}" method="post"><button>Sign out</button></form>
+	</header>
+	<main>
+		<h1>Cheque Truncation System</h1>
+	</main>
+</body>
+</html>

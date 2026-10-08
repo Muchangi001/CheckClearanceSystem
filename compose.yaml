@@ -1,0 +1,40 @@
+# Postgres starts by default. Spring Boot's Docker Compose support also starts
+# it on `./mvnw spring-boot:run` and wires the connection automatically.
+# The app container only starts with the `app` profile:
+#   docker compose --profile app up --build
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: cts
+      POSTGRES_USER: cts
+      POSTGRES_PASSWORD: cts
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cts -d cts"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    profiles: [app]
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/cts
+      SPRING_DATASOURCE_USERNAME: cts
+      SPRING_DATASOURCE_PASSWORD: cts
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+    ports:
+      - "8080:8080"
+    volumes:
+      - images:/data/images
+
+volumes:
+  pgdata:
+  images:

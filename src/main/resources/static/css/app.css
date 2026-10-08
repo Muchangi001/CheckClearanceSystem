@@ -1,0 +1,39 @@
+:root {
+	--bg: #f7f7f5;
+	--fg: #1c1c1c;
+	--muted: #6b6b6b;
+	--line: #e2e2de;
+	--accent: #1f4e79;
+}
+
+* { box-sizing: border-box; }
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--fg);
+	font: 15px/1.5 system-ui, sans-serif;
+}
+
+header {
+	display: flex;
+	gap: 1rem;
+	align-items: center;
+	padding: 0.75rem 1.5rem;
+	border-bottom: 1px solid var(--line);
+	background: #fff;
+}
+
+header span { margin-left: auto; color: var(--muted); }
+header form { margin: 0; }
+
+main { padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
+
+button {
+	font: inherit;
+	padding: 0.35rem 0.8rem;
+	border: 1px solid var(--line);
+	border-radius: 4px;
+	background: #fff;
+	cursor: pointer;
+}
