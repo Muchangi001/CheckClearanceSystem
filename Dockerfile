@@ -1,12 +1,12 @@
-FROM eclipse-temurin:21-jdk AS build
+# Maven comes from the image, not mvnw: the wrapper untars Maven at build time,
+# and some hosted builders' sandboxes can't (SnapDeploy: "Function not implemented").
+FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /src
-COPY .mvn .mvn
-COPY mvnw pom.xml ./
-RUN chmod +x mvnw
-RUN ./mvnw -B -q dependency:go-offline
+COPY pom.xml ./
+RUN mvn -B -q dependency:go-offline
 COPY src src
 # Tests need Docker (Testcontainers), so they run outside the image build.
-RUN ./mvnw -B -q package -DskipTests \
+RUN mvn -B -q package -DskipTests \
  && java -Djarmode=tools -jar target/cts-*.jar extract --layers --launcher --destination /extracted
 
 FROM eclipse-temurin:21-jre
