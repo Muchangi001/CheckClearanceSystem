@@ -2,6 +2,9 @@ server:
   port: ${PORT:8080}
   # TLS ends at the platform proxy; trust its X-Forwarded-* so redirects stay https.
   forward-headers-strategy: native
+  # The proxy does not always say it was https; relative Locations keep the scheme anyway.
+  tomcat:
+    use-relative-redirects: true
 
 spring:
   application:
